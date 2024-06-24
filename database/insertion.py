@@ -27,8 +27,8 @@ def insert_movie_data(sheet, conn, cur, start_row, batch_size=10000):
                 int(row[2].value) if row[2].value != "" else None,
                 row[3].value if row[3].value != "" else None,
                 row[4].value if row[4].value != "" else None,
-                row[5].value if row[5].value != "" else None,
-                row[6].value if row[6].value != "" else None
+                row[6].value if row[6].value != "" else None,
+                row[8].value if row[8].value != "" else None
             ))
         
         for i in range(0, len(movie_data), batch_size):
@@ -40,7 +40,8 @@ def insert_movie_data(sheet, conn, cur, start_row, batch_size=10000):
     except MySQLError as e:
         print(f"Movie 데이터 삽입 중 에러가 발생했습니다: {e}")
         conn.rollback()
-
+        
+    
 def insert_director_data(sheet, conn, cur, start_row, batch_size=10000):
     try:
         director_sql = """
@@ -106,7 +107,11 @@ def insert_genre_data(sheet, conn, cur, start_row, batch_size=10000):
     try:
         cur.execute("SELECT movie_id, title FROM Movie")
         movie_dict = {row['title']: row['movie_id'] for row in cur.fetchall()}
-        
+
+        # 이미 존재하는 (movie_id, genre_name) 조합을 가져옵니다.
+        cur.execute("SELECT movie_id, genre_name FROM Genre")
+        existing_genres = {(row['movie_id'], row['genre_name']) for row in cur.fetchall()}
+
         genre_sql = """
             INSERT INTO Genre (movie_id, genre_name)
             VALUES (%s, %s)
@@ -117,18 +122,22 @@ def insert_genre_data(sheet, conn, cur, start_row, batch_size=10000):
             movie_id = movie_dict.get(row[0].value, None)
             if movie_id is None:
                 print(f"Error: movie_id for '{row[0].value}' not found")
-            if movie_id and row[4].value:
-                genre_data.append((movie_id, row[4].value))
-        
+            genres = row[5].value.split(',') if row[5].value else []
+            for genre in genres:
+                if movie_id and genre and (movie_id, genre) not in existing_genres:
+                    genre_data.append((movie_id, genre))
+                    existing_genres.add((movie_id, genre))  # 새로운 조합을 추가합니다.
+
         for i in range(0, len(genre_data), batch_size):
             cur.executemany(genre_sql, genre_data[i:i + batch_size])
             conn.commit()
             print(f"{i + batch_size} rows inserted into Genre")
-        
+
         print("장르 데이터 삽입 완료")
     except MySQLError as e:
         print(f"Genre 데이터 삽입 중 에러가 발생했습니다: {e}")
         conn.rollback()
+
 
 def insert_data(sheet1, sheet2, conn, cur, batch_size=10000):
     insert_director_data(sheet1, conn, cur, 1, batch_size)  # 첫 번째 시트는 첫 번째 행부터 데이터

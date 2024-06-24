@@ -1,159 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-
+import MovieList from "./MovieList";
 import axios from "axios";
-import MovieList from "./MoiveList";
 
 export default function App() {
-  const mockData = [
-    // Add some mock movie data here
-    {
-      영화명: "Movie 1",
-      영화명영문: "Movie 1",
-      영화코드: "123456",
-      제작연도: 2022,
-      제작국가: "한국",
-      유형: "장편",
-      장르: "드라마",
-      제작상태: "개봉",
-      감독: "Director 1",
-      제작사: "Producer 1",
-    },
-    {
-      영화명: "Movie 2",
-      영화명영문: "Movie 2",
-      영화코드: "123457",
-      제작연도: 2021,
-      제작국가: "한국",
-      유형: "장편",
-      장르: "액션",
-      제작상태: "개봉",
-      감독: "Director 2",
-      제작사: "Producer 2",
-    },
-    {
-      영화명: "Movie 3",
-      영화명영문: "Movie 3",
-      영화코드: "123457",
-      제작연도: 2021,
-      제작국가: "한국",
-      유형: "장편",
-      장르: "액션",
-      제작상태: "개봉",
-      감독: "Director 2",
-      제작사: "Producer 2",
-    },
-    {
-      영화명: "Movie 4",
-      영화명영문: "Movie 4",
-      영화코드: "123457",
-      제작연도: 2021,
-      제작국가: "한국",
-      유형: "장편",
-      장르: "액션",
-      제작상태: "개봉",
-      감독: "Director 2",
-      제작사: "Producer 2",
-    },
-    {
-      영화명: "Movie 5",
-      영화명영문: "Movie 5",
-      영화코드: "123457",
-      제작연도: 2021,
-      제작국가: "한국",
-      유형: "장편",
-      장르: "액션",
-      제작상태: "개봉",
-      감독: "Director 2",
-      제작사: "Producer 2",
-    },
-    {
-      영화명: "Movie 6",
-      영화명영문: "Movie 6",
-      영화코드: "123457",
-      제작연도: 2021,
-      제작국가: "한국",
-      유형: "장편",
-      장르: "액션",
-      제작상태: "개봉",
-      감독: "Director 2",
-      제작사: "Producer 2",
-    },
-    {
-      영화명: "Movie 7",
-      영화명영문: "Movie 7",
-      영화코드: "123457",
-      제작연도: 2021,
-      제작국가: "한국",
-      유형: "장편",
-      장르: "액션",
-      제작상태: "개봉",
-      감독: "Director 2",
-      제작사: "Producer 2",
-    },
-    {
-      영화명: "Movie 8",
-      영화명영문: "Movie 8",
-      영화코드: "123457",
-      제작연도: 2021,
-      제작국가: "한국",
-      유형: "장편",
-      장르: "액션",
-      제작상태: "개봉",
-      감독: "Director 2",
-      제작사: "Producer 2",
-    },
-    {
-      영화명: "Movie 9",
-      영화명영문: "Movie 9",
-      영화코드: "123457",
-      제작연도: 2021,
-      제작국가: "한국",
-      유형: "장편",
-      장르: "액션",
-      제작상태: "개봉",
-      감독: "Director 2",
-      제작사: "Producer 2",
-    },
-    {
-      영화명: "Movie 10",
-      영화명영문: "Movie 10",
-      영화코드: "123457",
-      제작연도: 2021,
-      제작국가: "한국",
-      유형: "장편",
-      장르: "액션",
-      제작상태: "개봉",
-      감독: "Director 2",
-      제작사: "Producer 2",
-    },
-    {
-      영화명: "Movie 11",
-      영화명영문: "Movie 11",
-      영화코드: "123457",
-      제작연도: 2021,
-      제작국가: "한국",
-      유형: "장편",
-      장르: "액션",
-      제작상태: "개봉",
-      감독: "Director 2",
-      제작사: "Producer 2",
-    },
-    {
-      영화명: "Movie 12",
-      영화명영문: "Movie 12",
-      영화코드: "123457",
-      제작연도: 2021,
-      제작국가: "한국",
-      유형: "장편",
-      장르: "액션",
-      제작상태: "개봉",
-      감독: "Director 2",
-      제작사: "Producer 2",
-    },
-  ];
-
   const ITEMS_PER_PAGE = 10;
 
   const [startDate, setStartDate] = useState(null);
@@ -165,32 +16,39 @@ export default function App() {
   const [movies, setMovies] = useState([]);
   const [totalMovies, setTotalMovies] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
 
   const options = Array.from(
     { length: 2024 - 1924 + 1 },
     (_, index) => 1924 + index
   );
 
-  const submitHandler = async (e) => {
+  const submitHandler = (e) => {
     e.preventDefault();
-    await searchList();
+    searchList();
   };
 
   const searchList = async () => {
-    const response = await axios.get("YOUR_API_ENDPOINT", {
-      params: {
-        movieName,
-        directorName,
-        productionYearFrom,
-        productionYearTo,
-        startDate: startDate ? startDate.toISOString().split("T")[0] : "",
-        endDate: endDate ? endDate.toISOString().split("T")[0] : "",
-        page: currentPage,
-        limit: ITEMS_PER_PAGE,
-      },
-    });
-    setMovies(response.data.movies);
-    setTotalMovies(response.data.total);
+    setIsLoading(true);
+    try {
+      const response = await axios.get("http://localhost:8000/movies", {
+        params: {
+          movieName,
+          directorName,
+          productionYearFrom,
+          productionYearTo,
+          startDate,
+          endDate,
+          page: currentPage,
+          limit: ITEMS_PER_PAGE,
+        },
+      });
+      setMovies(response.data.movies);
+      setTotalMovies(response.data.total);
+    } catch (error) {
+      console.error("Failed to fetch movies:", error);
+    }
+    setIsLoading(false);
   };
 
   const searchReset = () => {
@@ -200,16 +58,19 @@ export default function App() {
     setProductionYearTo("");
     setStartDate(null);
     setEndDate(null);
+    setMovies([]);
+    setTotalMovies(0);
   };
 
+  useEffect(() => {
+    searchList();
+  }, [currentPage]);
+
   return (
-    <div>
-      <div className='flex'>
-        <h1 className='text-3xl mb-2'>201914175 선정민 기말 프로젝트 과제</h1>
-      </div>
+    <div className='min-w-[1440px] w-screen p-16'>
       <form
         onSubmit={submitHandler}
-        className='p-16 w-[1200px] border-t border-b border-gray-400'
+        className='p-16 w-full border-t border-b border-gray-400'
       >
         <div className='grid grid-cols-3'>
           <div className='flex flex-col'>
@@ -299,14 +160,17 @@ export default function App() {
           </div>
         </div>
       </form>
-      <MovieList
-        movies={mockData}
-        totalMovies={mockData.length}
-        currentPage={currentPage}
-        setCurrentPage={setCurrentPage}
-        itemsPerPage={ITEMS_PER_PAGE}
-        searchList={searchList}
-      />
+      {isLoading ? (
+        <div>Loading...</div>
+      ) : (
+        <MovieList
+          movies={movies}
+          totalMovies={totalMovies}
+          currentPage={currentPage}
+          setCurrentPage={setCurrentPage}
+          itemsPerPage={ITEMS_PER_PAGE}
+        />
+      )}
     </div>
   );
 }
