@@ -38,9 +38,9 @@ def create_tables():
         );
 
         CREATE TABLE Genre (
-            genre_id INT PRIMARY KEY AUTO_INCREMENT,
             movie_id INT,
             genre_name VARCHAR(255),
+            PRIMARY KEY (movie_id, genre_name),
             FOREIGN KEY (movie_id) REFERENCES Movie(movie_id)
         );
         """
