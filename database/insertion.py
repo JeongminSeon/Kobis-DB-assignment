@@ -1,11 +1,10 @@
 import pymysql
 import xlrd
-import pymysql
-from table import create_tables
 from pymysql.err import MySQLError
 from db_conn import open_db, close_db  # db_conn.py에서 import
+from table import create_tables
 
-def insert_movie_data(sheet, conn, cur, batch_size=10000):
+def insert_movie_data(sheet, conn, cur, start_row, batch_size=10000):
     try:
         movie_sql = """
             INSERT INTO Movie (title, title_eng, year, country, category, status, company)
@@ -20,7 +19,7 @@ def insert_movie_data(sheet, conn, cur, batch_size=10000):
                 enter_date = VALUES(enter_date)
         """
         movie_data = []
-        for row_idx in range(1, sheet.nrows):  # 첫 번째 행은 헤더
+        for row_idx in range(start_row, sheet.nrows):  # start_row부터 읽기
             row = sheet.row(row_idx)
             movie_data.append((
                 row[0].value,
@@ -42,17 +41,18 @@ def insert_movie_data(sheet, conn, cur, batch_size=10000):
         print(f"Movie 데이터 삽입 중 에러가 발생했습니다: {e}")
         conn.rollback()
 
-def insert_director_data(sheet, conn, cur, batch_size=10000):
+def insert_director_data(sheet, conn, cur, start_row, batch_size=10000):
     try:
-        directors = {sheet.cell(row_idx, 7).value for row_idx in range(1, sheet.nrows) if sheet.cell(row_idx, 7).value != ""}  # 첫 번째 행은 헤더
         director_sql = """
-            INSERT INTO Director (name)
-            VALUES (%s)
-            ON DUPLICATE KEY UPDATE
-                name = VALUES(name),
-                enter_date = VALUES(enter_date)
+            INSERT IGNORE INTO Director (name)
+            VALUES (LOWER(%s))
         """
-        director_data = [(director,) for director in directors]
+        director_data = []
+        for row_idx in range(start_row, sheet.nrows):  # start_row부터 읽기
+            director_name = sheet.cell(row_idx, 7).value
+            if director_name and director_name != "":
+                director_data.append((director_name.lower(),))
+        
         for i in range(0, len(director_data), batch_size):
             cur.executemany(director_sql, director_data[i:i + batch_size])
             conn.commit()
@@ -63,12 +63,13 @@ def insert_director_data(sheet, conn, cur, batch_size=10000):
         print(f"Director 데이터 삽입 중 에러가 발생했습니다: {e}")
         conn.rollback()
 
-def insert_casting_data(sheet, conn, cur, batch_size=10000):
+
+def insert_casting_data(sheet, conn, cur, start_row, batch_size=10000):
     try:
         cur.execute("SELECT movie_id, title FROM Movie")
         movie_dict = {row['title']: row['movie_id'] for row in cur.fetchall()}
         
-        cur.execute("SELECT director_id, name FROM Director")
+        cur.execute("SELECT director_id, LOWER(name) as name FROM Director")
         director_dict = {row['name']: row['director_id'] for row in cur.fetchall()}
         
         casting_sql = """
@@ -76,16 +77,17 @@ def insert_casting_data(sheet, conn, cur, batch_size=10000):
             VALUES (%s, %s)
         """
         casting_data = []
-        for row_idx in range(1, sheet.nrows):  # 첫 번째 행은 헤더
+        for row_idx in range(start_row, sheet.nrows):  # start_row부터 읽기
             row = sheet.row(row_idx)
             movie_id = movie_dict.get(row[0].value, None)
-            director_id = director_dict.get(row[7].value, None)
-            if row[7].value == "":
+            director_name = row[7].value.lower()
+            director_id = director_dict.get(director_name, None)
+            if director_name == "":
                 continue  # 감독 이름이 빈 문자열이면 무시
             if movie_id is None:
                 print(f"Error: movie_id for '{row[0].value}' not found")
             if director_id is None:
-                print(f"Error: director_id for '{row[7].value}' not found")
+                print(f"Error: director_id for '{director_name}' not found")
             if movie_id and director_id:
                 casting_data.append((movie_id, director_id))
         
@@ -99,7 +101,8 @@ def insert_casting_data(sheet, conn, cur, batch_size=10000):
         print(f"Casting 데이터 삽입 중 에러가 발생했습니다: {e}")
         conn.rollback()
 
-def insert_genre_data(sheet, conn, cur, batch_size=10000):
+
+def insert_genre_data(sheet, conn, cur, start_row, batch_size=10000):
     try:
         cur.execute("SELECT movie_id, title FROM Movie")
         movie_dict = {row['title']: row['movie_id'] for row in cur.fetchall()}
@@ -109,7 +112,7 @@ def insert_genre_data(sheet, conn, cur, batch_size=10000):
             VALUES (%s, %s)
         """
         genre_data = []
-        for row_idx in range(1, sheet.nrows):  # 첫 번째 행은 헤더
+        for row_idx in range(start_row, sheet.nrows):  # start_row부터 읽기
             row = sheet.row(row_idx)
             movie_id = movie_dict.get(row[0].value, None)
             if movie_id is None:
@@ -128,14 +131,14 @@ def insert_genre_data(sheet, conn, cur, batch_size=10000):
         conn.rollback()
 
 def insert_data(sheet1, sheet2, conn, cur, batch_size=10000):
-    insert_director_data(sheet1, conn, cur, batch_size)  # 감독 데이터를 먼저 삽입
-    insert_movie_data(sheet1, conn, cur, batch_size)
-    insert_casting_data(sheet1, conn, cur, batch_size)
-    insert_genre_data(sheet1, conn, cur, batch_size)
-    insert_director_data(sheet2, conn, cur, batch_size)  # 두 번째 시트의 감독 데이터를 삽입
-    insert_movie_data(sheet2, conn, cur, batch_size)
-    insert_casting_data(sheet2, conn, cur, batch_size)
-    insert_genre_data(sheet2, conn, cur, batch_size)
+    insert_director_data(sheet1, conn, cur, 1, batch_size)  # 첫 번째 시트는 첫 번째 행부터 데이터
+    insert_movie_data(sheet1, conn, cur, 1, batch_size)
+    insert_casting_data(sheet1, conn, cur, 1, batch_size)
+    insert_genre_data(sheet1, conn, cur, 1, batch_size)
+    insert_director_data(sheet2, conn, cur, 0, batch_size)  # 두 번째 시트는 첫 번째 행이 데이터
+    insert_movie_data(sheet2, conn, cur, 0, batch_size)
+    insert_casting_data(sheet2, conn, cur, 0, batch_size)
+    insert_genre_data(sheet2, conn, cur, 0, batch_size)
 
 if __name__ == "__main__":
     # 엑셀 파일 읽기
@@ -147,6 +150,6 @@ if __name__ == "__main__":
     # 데이터베이스 연결
     conn, cur = open_db('kobis')  # 데이터베이스 이름 확인
     if conn and cur:
-        create_tables()  # 테이블 생성
+        create_tables() 
         insert_data(sheet1, sheet2, conn, cur)
         close_db(conn, cur)

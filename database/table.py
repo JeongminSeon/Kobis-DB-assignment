@@ -24,8 +24,9 @@ def create_tables():
 
         CREATE TABLE Director (
             director_id INT AUTO_INCREMENT PRIMARY KEY,
-            name VARCHAR(255),
-            enter_date DATETIME DEFAULT NOW()
+            name VARCHAR(255) NOT NULL,
+            enter_date DATETIME DEFAULT NOW(),
+            UNIQUE (name)
         );
 
         CREATE TABLE Casting (
