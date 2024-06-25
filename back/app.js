@@ -13,6 +13,7 @@ const db = mysql.createConnection({
   user: "root",
   password: "",
   database: "kobis",
+  charset: "utf8mb4",
 });
 
 // MySQL 데이터베이스 연결
@@ -126,6 +127,9 @@ app.get("/movies", (req, res) => {
   sqlQuery += " LIMIT ? OFFSET ?";
   params.push(parseInt(limit));
   params.push((parseInt(page) - 1) * parseInt(limit));
+
+  console.log("Count Query Params:", params.slice(0, -2));
+  console.log("SQL Query Params:", params);
 
   db.query(countQuery, params.slice(0, -2), (err, countResults) => {
     if (err) {
