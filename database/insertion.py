@@ -126,7 +126,7 @@ def insert_genre_data(sheet, conn, cur, start_row, batch_size=10000):
             for genre in genres:
                 if movie_id and genre and (movie_id, genre) not in existing_genres:
                     genre_data.append((movie_id, genre))
-                    existing_genres.add((movie_id, genre))  # 새로운 조합을 추가합니다.
+                    existing_genres.add((movie_id, genre))  # 새로운 조합을 추가
 
         for i in range(0, len(genre_data), batch_size):
             cur.executemany(genre_sql, genre_data[i:i + batch_size])

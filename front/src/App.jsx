@@ -58,8 +58,6 @@ export default function App() {
     setProductionYearTo("");
     setStartDate(null);
     setEndDate(null);
-    setMovies([]);
-    setTotalMovies(0);
   };
 
   useEffect(() => {
